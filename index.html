@@ -1,0 +1,50 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { CalendarDays, CheckCircle2, Clock3, Eraser, Plus, StickyNote, Trash2 } from "lucide-react";
+
+export default function App() {
+  const [tab, setTab] = useState("Vandaag");
+  const [tasks, setTasks] = useState(() => JSON.parse(localStorage.getItem("daily_tasks") || "[]"));
+  const [task, setTask] = useState("");
+  const [notes, setNotes] = useState(() => localStorage.getItem("daily_notes") || "");
+  const [events, setEvents] = useState(() => JSON.parse(localStorage.getItem("daily_events") || "[]"));
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [cards, setCards] = useState(() => JSON.parse(localStorage.getItem("daily_board") || "[]"));
+  const [cardText, setCardText] = useState("");
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => { const i=setInterval(()=>setNow(new Date()),1000); return()=>clearInterval(i); }, []);
+  useEffect(() => localStorage.setItem("daily_tasks", JSON.stringify(tasks)), [tasks]);
+  useEffect(() => localStorage.setItem("daily_notes", notes), [notes]);
+  useEffect(() => localStorage.setItem("daily_events", JSON.stringify(events)), [events]);
+  useEffect(() => localStorage.setItem("daily_board", JSON.stringify(cards)), [cards]);
+
+  const dateLabel = useMemo(() => new Intl.DateTimeFormat("nl-NL", { weekday:"long", day:"numeric", month:"long" }).format(now), [now]);
+  const addTask=()=>{if(task.trim()){setTasks([{id:Date.now(),text:task.trim(),done:false},...tasks]);setTask("")}};
+  const addEvent=()=>{if(eventTitle.trim()&&eventDate){setEvents([...events,{id:Date.now(),title:eventTitle.trim(),date:eventDate}].sort((a,b)=>a.date.localeCompare(b.date)));setEventTitle("");setEventDate("")}};
+  const addCard=()=>{if(cardText.trim()){setCards([...cards,{id:Date.now(),text:cardText.trim()}]);setCardText("")}};
+
+  const Shell=({title,subtitle,children})=><div className="space-y-6"><div><h2 className="text-3xl font-bold tracking-tight">{title}</h2><p className="text-slate-500 mt-1">{subtitle}</p></div>{children}</div>;
+  const Box=({children,className=""})=><div className={`bg-white border border-slate-200 shadow-sm rounded-2xl p-5 ${className}`}>{children}</div>;
+
+  return <div className="min-h-screen bg-slate-50 text-slate-900">
+    <header className="sticky top-0 z-20 backdrop-blur bg-white/80 border-b border-slate-200">
+      <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+        <div className="font-black text-xl tracking-tight">DAY<span className="text-indigo-600">SPACE</span></div>
+        <div className="text-sm text-slate-500 hidden sm:block">{dateLabel} · {now.toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"})}</div>
+      </div>
+    </header>
+    <div className="max-w-6xl mx-auto p-5 grid lg:grid-cols-[210px_1fr] gap-7">
+      <nav className="flex lg:flex-col gap-2 overflow-auto pb-2">
+        {[['Vandaag',Clock3],['Taken',CheckCircle2],['Agenda',CalendarDays],['Whiteboard',StickyNote],['Notities',StickyNote]].map(([x,I])=><button key={x} onClick={()=>setTab(x)} className={`whitespace-nowrap flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${tab===x?'bg-slate-900 text-white shadow':'hover:bg-white text-slate-600'}`}><I size={18}/>{x}</button>)}
+      </nav>
+      <main>
+        {tab==='Vandaag'&&<Shell title="Goed bezig 👋" subtitle="Alles wat je vandaag nodig hebt, op één plek."><div className="grid md:grid-cols-3 gap-4"><Box><div className="text-slate-500 text-sm">Open taken</div><div className="text-4xl font-black mt-2">{tasks.filter(t=>!t.done).length}</div></Box><Box><div className="text-slate-500 text-sm">Afspraken</div><div className="text-4xl font-black mt-2">{events.length}</div></Box><Box><div className="text-slate-500 text-sm">Whiteboard ideeën</div><div className="text-4xl font-black mt-2">{cards.length}</div></Box></div><Box><h3 className="font-bold mb-3">Snel een taak toevoegen</h3><div className="flex gap-2"><input value={task} onChange={e=>setTask(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addTask()} placeholder="Wat moet je nog doen?" className="flex-1 border rounded-xl px-4 py-3 outline-none focus:ring-2 ring-indigo-500"/><button onClick={addTask} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4"><Plus/></button></div></Box></Shell>}
+        {tab==='Taken'&&<Shell title="Taken" subtitle="Maak je hoofd leeg en zet het hier neer."><Box><div className="flex gap-2 mb-5"><input value={task} onChange={e=>setTask(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addTask()} placeholder="Nieuwe taak..." className="flex-1 border rounded-xl px-4 py-3"/><button onClick={addTask} className="bg-indigo-600 text-white rounded-xl px-4"><Plus/></button></div><div className="space-y-2">{tasks.length===0&&<p className="text-slate-400">Nog geen taken.</p>}{tasks.map(t=><div key={t.id} className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl"><input type="checkbox" checked={t.done} onChange={()=>setTasks(tasks.map(v=>v.id===t.id?{...v,done:!v.done}:v))}/><span className={`flex-1 ${t.done?'line-through text-slate-400':''}`}>{t.text}</span><button onClick={()=>setTasks(tasks.filter(v=>v.id!==t.id))} className="text-slate-400 hover:text-red-500"><Trash2 size={17}/></button></div>)}</div></Box></Shell>}
+        {tab==='Agenda'&&<Shell title="Agenda" subtitle="Plan afspraken, deadlines en andere belangrijke momenten."><Box><div className="grid sm:grid-cols-[1fr_180px_auto] gap-2 mb-5"><input value={eventTitle} onChange={e=>setEventTitle(e.target.value)} placeholder="Afspraak..." className="border rounded-xl px-4 py-3"/><input type="date" value={eventDate} onChange={e=>setEventDate(e.target.value)} className="border rounded-xl px-4 py-3"/><button onClick={addEvent} className="bg-indigo-600 text-white rounded-xl px-4">Toevoegen</button></div><div className="space-y-2">{events.map(e=><div key={e.id} className="flex items-center gap-4 border-b py-3"><div className="text-indigo-600 font-bold w-28">{new Date(e.date+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'short'})}</div><span className="flex-1">{e.title}</span><button onClick={()=>setEvents(events.filter(x=>x.id!==e.id))}><Trash2 size={17}/></button></div>)}</div></Box></Shell>}
+        {tab==='Whiteboard'&&<Shell title="Whiteboard" subtitle="Een snelle plek voor ideeën, plannen en gedachten."><div className="flex gap-2 mb-5"><input value={cardText} onChange={e=>setCardText(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addCard()} placeholder="Nieuw idee..." className="flex-1 border rounded-xl px-4 py-3 bg-white"/><button onClick={addCard} className="bg-indigo-600 text-white px-5 rounded-xl"><Plus/></button></div><div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{cards.map((c,i)=><div key={c.id} className={`min-h-40 rounded-2xl p-5 shadow-sm ${['bg-amber-100','bg-sky-100','bg-emerald-100','bg-pink-100'][i%4]}`}><div className="flex justify-end"><button onClick={()=>setCards(cards.filter(x=>x.id!==c.id))}><Trash2 size={16}/></button></div><p className="mt-2 whitespace-pre-wrap">{c.text}</p></div>)}</div></Shell>}
+        {tab==='Notities'&&<Shell title="Notities" subtitle="Wordt automatisch opgeslagen op dit apparaat."><Box><textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Begin met typen..." className="w-full min-h-[440px] resize-none outline-none text-lg leading-8"/><div className="flex justify-between border-t pt-3 text-xs text-slate-400"><span>{notes.length} tekens</span><button onClick={()=>setNotes('')} className="flex gap-1 hover:text-red-500"><Eraser size={14}/> Wissen</button></div></Box></Shell>}
+      </main>
+    </div>
+  </div>;
+}
