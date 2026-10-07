@@ -1,50 +1,40 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { CalendarDays, CheckCircle2, Clock3, Eraser, Plus, StickyNote, Trash2 } from "lucide-react";
-
-export default function App() {
-  const [tab, setTab] = useState("Vandaag");
-  const [tasks, setTasks] = useState(() => JSON.parse(localStorage.getItem("daily_tasks") || "[]"));
-  const [task, setTask] = useState("");
-  const [notes, setNotes] = useState(() => localStorage.getItem("daily_notes") || "");
-  const [events, setEvents] = useState(() => JSON.parse(localStorage.getItem("daily_events") || "[]"));
-  const [eventTitle, setEventTitle] = useState("");
-  const [eventDate, setEventDate] = useState("");
-  const [cards, setCards] = useState(() => JSON.parse(localStorage.getItem("daily_board") || "[]"));
-  const [cardText, setCardText] = useState("");
-  const [now, setNow] = useState(new Date());
-
-  useEffect(() => { const i=setInterval(()=>setNow(new Date()),1000); return()=>clearInterval(i); }, []);
-  useEffect(() => localStorage.setItem("daily_tasks", JSON.stringify(tasks)), [tasks]);
-  useEffect(() => localStorage.setItem("daily_notes", notes), [notes]);
-  useEffect(() => localStorage.setItem("daily_events", JSON.stringify(events)), [events]);
-  useEffect(() => localStorage.setItem("daily_board", JSON.stringify(cards)), [cards]);
-
-  const dateLabel = useMemo(() => new Intl.DateTimeFormat("nl-NL", { weekday:"long", day:"numeric", month:"long" }).format(now), [now]);
-  const addTask=()=>{if(task.trim()){setTasks([{id:Date.now(),text:task.trim(),done:false},...tasks]);setTask("")}};
-  const addEvent=()=>{if(eventTitle.trim()&&eventDate){setEvents([...events,{id:Date.now(),title:eventTitle.trim(),date:eventDate}].sort((a,b)=>a.date.localeCompare(b.date)));setEventTitle("");setEventDate("")}};
-  const addCard=()=>{if(cardText.trim()){setCards([...cards,{id:Date.now(),text:cardText.trim()}]);setCardText("")}};
-
-  const Shell=({title,subtitle,children})=><div className="space-y-6"><div><h2 className="text-3xl font-bold tracking-tight">{title}</h2><p className="text-slate-500 mt-1">{subtitle}</p></div>{children}</div>;
-  const Box=({children,className=""})=><div className={`bg-white border border-slate-200 shadow-sm rounded-2xl p-5 ${className}`}>{children}</div>;
-
-  return <div className="min-h-screen bg-slate-50 text-slate-900">
-    <header className="sticky top-0 z-20 backdrop-blur bg-white/80 border-b border-slate-200">
-      <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-        <div className="font-black text-xl tracking-tight">DAY<span className="text-indigo-600">SPACE</span></div>
-        <div className="text-sm text-slate-500 hidden sm:block">{dateLabel} · {now.toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"})}</div>
-      </div>
-    </header>
-    <div className="max-w-6xl mx-auto p-5 grid lg:grid-cols-[210px_1fr] gap-7">
-      <nav className="flex lg:flex-col gap-2 overflow-auto pb-2">
-        {[['Vandaag',Clock3],['Taken',CheckCircle2],['Agenda',CalendarDays],['Whiteboard',StickyNote],['Notities',StickyNote]].map(([x,I])=><button key={x} onClick={()=>setTab(x)} className={`whitespace-nowrap flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${tab===x?'bg-slate-900 text-white shadow':'hover:bg-white text-slate-600'}`}><I size={18}/>{x}</button>)}
-      </nav>
-      <main>
-        {tab==='Vandaag'&&<Shell title="Goed bezig 👋" subtitle="Alles wat je vandaag nodig hebt, op één plek."><div className="grid md:grid-cols-3 gap-4"><Box><div className="text-slate-500 text-sm">Open taken</div><div className="text-4xl font-black mt-2">{tasks.filter(t=>!t.done).length}</div></Box><Box><div className="text-slate-500 text-sm">Afspraken</div><div className="text-4xl font-black mt-2">{events.length}</div></Box><Box><div className="text-slate-500 text-sm">Whiteboard ideeën</div><div className="text-4xl font-black mt-2">{cards.length}</div></Box></div><Box><h3 className="font-bold mb-3">Snel een taak toevoegen</h3><div className="flex gap-2"><input value={task} onChange={e=>setTask(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addTask()} placeholder="Wat moet je nog doen?" className="flex-1 border rounded-xl px-4 py-3 outline-none focus:ring-2 ring-indigo-500"/><button onClick={addTask} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4"><Plus/></button></div></Box></Shell>}
-        {tab==='Taken'&&<Shell title="Taken" subtitle="Maak je hoofd leeg en zet het hier neer."><Box><div className="flex gap-2 mb-5"><input value={task} onChange={e=>setTask(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addTask()} placeholder="Nieuwe taak..." className="flex-1 border rounded-xl px-4 py-3"/><button onClick={addTask} className="bg-indigo-600 text-white rounded-xl px-4"><Plus/></button></div><div className="space-y-2">{tasks.length===0&&<p className="text-slate-400">Nog geen taken.</p>}{tasks.map(t=><div key={t.id} className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl"><input type="checkbox" checked={t.done} onChange={()=>setTasks(tasks.map(v=>v.id===t.id?{...v,done:!v.done}:v))}/><span className={`flex-1 ${t.done?'line-through text-slate-400':''}`}>{t.text}</span><button onClick={()=>setTasks(tasks.filter(v=>v.id!==t.id))} className="text-slate-400 hover:text-red-500"><Trash2 size={17}/></button></div>)}</div></Box></Shell>}
-        {tab==='Agenda'&&<Shell title="Agenda" subtitle="Plan afspraken, deadlines en andere belangrijke momenten."><Box><div className="grid sm:grid-cols-[1fr_180px_auto] gap-2 mb-5"><input value={eventTitle} onChange={e=>setEventTitle(e.target.value)} placeholder="Afspraak..." className="border rounded-xl px-4 py-3"/><input type="date" value={eventDate} onChange={e=>setEventDate(e.target.value)} className="border rounded-xl px-4 py-3"/><button onClick={addEvent} className="bg-indigo-600 text-white rounded-xl px-4">Toevoegen</button></div><div className="space-y-2">{events.map(e=><div key={e.id} className="flex items-center gap-4 border-b py-3"><div className="text-indigo-600 font-bold w-28">{new Date(e.date+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'short'})}</div><span className="flex-1">{e.title}</span><button onClick={()=>setEvents(events.filter(x=>x.id!==e.id))}><Trash2 size={17}/></button></div>)}</div></Box></Shell>}
-        {tab==='Whiteboard'&&<Shell title="Whiteboard" subtitle="Een snelle plek voor ideeën, plannen en gedachten."><div className="flex gap-2 mb-5"><input value={cardText} onChange={e=>setCardText(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addCard()} placeholder="Nieuw idee..." className="flex-1 border rounded-xl px-4 py-3 bg-white"/><button onClick={addCard} className="bg-indigo-600 text-white px-5 rounded-xl"><Plus/></button></div><div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{cards.map((c,i)=><div key={c.id} className={`min-h-40 rounded-2xl p-5 shadow-sm ${['bg-amber-100','bg-sky-100','bg-emerald-100','bg-pink-100'][i%4]}`}><div className="flex justify-end"><button onClick={()=>setCards(cards.filter(x=>x.id!==c.id))}><Trash2 size={16}/></button></div><p className="mt-2 whitespace-pre-wrap">{c.text}</p></div>)}</div></Shell>}
-        {tab==='Notities'&&<Shell title="Notities" subtitle="Wordt automatisch opgeslagen op dit apparaat."><Box><textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Begin met typen..." className="w-full min-h-[440px] resize-none outline-none text-lg leading-8"/><div className="flex justify-between border-t pt-3 text-xs text-slate-400"><span>{notes.length} tekens</span><button onClick={()=>setNotes('')} className="flex gap-1 hover:text-red-500"><Eraser size={14}/> Wissen</button></div></Box></Shell>}
-      </main>
-    </div>
-  </div>;
-}
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>DaySpace</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:#f6f7fb;color:#182033}button,input,textarea{font:inherit}button{cursor:pointer}.top{height:68px;background:#fff;border-bottom:1px solid #e6e8ef;display:flex;align-items:center;justify-content:space-between;padding:0 max(22px,calc((100% - 1180px)/2));position:sticky;top:0;z-index:5}.logo{font-size:21px;font-weight:900;letter-spacing:-.8px}.logo b{color:#5b5ce2}.date{color:#7c8496;font-size:14px}.layout{max-width:1180px;margin:auto;padding:28px 22px;display:grid;grid-template-columns:210px 1fr;gap:34px}.nav{display:flex;flex-direction:column;gap:8px}.nav button{border:0;background:transparent;text-align:left;padding:13px 15px;border-radius:12px;color:#667085;font-weight:650}.nav button.active{background:#182033;color:white;box-shadow:0 5px 14px #18203322}.nav button:hover:not(.active){background:#fff}.page{display:none}.page.active{display:block}h1{font-size:32px;letter-spacing:-1px;margin:0 0 5px}.sub{color:#7c8496;margin:0 0 24px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.card{background:#fff;border:1px solid #e5e8ef;border-radius:18px;padding:20px;box-shadow:0 2px 7px #17203308;margin-bottom:16px}.metric{font-size:38px;font-weight:850;margin-top:8px}.label{font-size:14px;color:#7c8496}.row{display:flex;gap:9px}.row input,.eventform input{width:100%;border:1px solid #d9dde7;border-radius:11px;padding:12px 14px;outline:none;background:#fff}.row input:focus,.eventform input:focus,textarea:focus{border-color:#6869e8;box-shadow:0 0 0 3px #6869e820}.primary{border:0;background:#5b5ce2;color:#fff;padding:11px 16px;border-radius:11px;font-weight:700}.primary:hover{background:#4b4cd3}.task,.event{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid #edf0f4}.task:last-child,.event:last-child{border:0}.task span,.event .ename{flex:1}.done{text-decoration:line-through;color:#9aa1af}.delete{border:0;background:transparent;color:#9aa1af;font-size:18px}.delete:hover{color:#e15161}.eventform{display:grid;grid-template-columns:1fr 175px auto;gap:9px;margin-bottom:17px}.edate{width:100px;color:#5b5ce2;font-weight:750}.board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.note{min-height:150px;padding:17px;border-radius:17px;word-break:break-word;box-shadow:0 2px 7px #1720330c}.note:nth-child(4n+1){background:#fff0b7}.note:nth-child(4n+2){background:#dff1ff}.note:nth-child(4n+3){background:#dcf7e9}.note:nth-child(4n){background:#ffe1ed}.note .delete{float:right}textarea{width:100%;min-height:430px;border:0;resize:vertical;outline:0;line-height:1.7;font-size:17px}.small{font-size:12px;color:#98a0af;border-top:1px solid #eef0f4;padding-top:10px;text-align:right}.empty{color:#9aa1af;padding:15px 0}@media(max-width:720px){.date{display:none}.layout{display:block;padding:18px 14px 90px}.nav{position:fixed;z-index:10;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e1e4eb;padding:7px;display:grid;grid-template-columns:repeat(5,1fr);gap:3px}.nav button{text-align:center;font-size:11px;padding:10px 3px}.grid{grid-template-columns:1fr}.board{grid-template-columns:1fr 1fr}.eventform{grid-template-columns:1fr}.top{padding:0 18px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="logo">DAY<b>SPACE</b></div><div class="date" id="clock"></div></header>
+<div class="layout">
+<nav class="nav" id="nav">
+<button class="active" data-page="today">🏠 Vandaag</button><button data-page="tasks">✓ Taken</button><button data-page="agenda">📅 Agenda</button><button data-page="board">▦ Whiteboard</button><button data-page="notes">📝 Notities</button>
+</nav>
+<main>
+<section class="page active" id="today"><h1>Goed bezig 👋</h1><p class="sub">Alles wat je vandaag nodig hebt, op één plek.</p><div class="grid"><div class="card"><div class="label">Open taken</div><div class="metric" id="taskCount">0</div></div><div class="card"><div class="label">Afspraken</div><div class="metric" id="eventCount">0</div></div><div class="card"><div class="label">Whiteboard ideeën</div><div class="metric" id="boardCount">0</div></div></div><div class="card"><h3>Snel een taak toevoegen</h3><div class="row"><input id="quickTask" placeholder="Wat moet je nog doen?"><button class="primary" onclick="addTask('quickTask')">＋</button></div></div></section>
+<section class="page" id="tasks"><h1>Taken</h1><p class="sub">Maak je hoofd leeg en zet het hier neer.</p><div class="card"><div class="row"><input id="taskInput" placeholder="Nieuwe taak..."><button class="primary" onclick="addTask('taskInput')">Toevoegen</button></div><div id="taskList"></div></div></section>
+<section class="page" id="agenda"><h1>Agenda</h1><p class="sub">Plan afspraken, deadlines en belangrijke momenten.</p><div class="card"><div class="eventform"><input id="eventTitle" placeholder="Afspraak..."><input id="eventDate" type="date"><button class="primary" onclick="addEvent()">Toevoegen</button></div><div id="eventList"></div></div></section>
+<section class="page" id="board"><h1>Whiteboard</h1><p class="sub">Bewaar snelle ideeën en plannen.</p><div class="row" style="margin-bottom:18px"><input id="boardInput" placeholder="Nieuw idee..."><button class="primary" onclick="addBoard()">＋</button></div><div class="board" id="boardList"></div></section>
+<section class="page" id="notes"><h1>Notities</h1><p class="sub">Je tekst wordt automatisch op dit apparaat opgeslagen.</p><div class="card"><textarea id="noteText" placeholder="Begin met typen..."></textarea><div class="small" id="chars">0 tekens</div></div></section>
+</main></div>
+<script>
+const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
+let tasks=get('dayspace_tasks',[]),events=get('dayspace_events',[]),board=get('dayspace_board',[]);
+const save=()=>{localStorage.setItem('dayspace_tasks',JSON.stringify(tasks));localStorage.setItem('dayspace_events',JSON.stringify(events));localStorage.setItem('dayspace_board',JSON.stringify(board));render()};
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){document.getElementById('taskCount').textContent=tasks.filter(x=>!x.done).length;document.getElementById('eventCount').textContent=events.length;document.getElementById('boardCount').textContent=board.length;document.getElementById('taskList').innerHTML=tasks.length?tasks.map(x=>`<div class="task"><input type="checkbox" ${x.done?'checked':''} onchange="toggleTask(${x.id})"><span class="${x.done?'done':''}">${esc(x.text)}</span><button class="delete" onclick="delTask(${x.id})">×</button></div>`).join(''):'<div class="empty">Nog geen taken.</div>';document.getElementById('eventList').innerHTML=events.length?events.sort((a,b)=>a.date.localeCompare(b.date)).map(x=>`<div class="event"><span class="edate">${new Date(x.date+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'short'})}</span><span class="ename">${esc(x.title)}</span><button class="delete" onclick="delEvent(${x.id})">×</button></div>`).join(''):'<div class="empty">Nog geen afspraken.</div>';document.getElementById('boardList').innerHTML=board.length?board.map(x=>`<div class="note"><button class="delete" onclick="delBoard(${x.id})">×</button>${esc(x.text)}</div>`).join(''):'<div class="empty">Nog geen ideeën.</div>'}
+function addTask(id){let e=document.getElementById(id),v=e.value.trim();if(!v)return;tasks.unshift({id:Date.now(),text:v,done:false});e.value='';save()}
+function toggleTask(id){let x=tasks.find(x=>x.id===id);if(x)x.done=!x.done;save()}function delTask(id){tasks=tasks.filter(x=>x.id!==id);save()}
+function addEvent(){let t=document.getElementById('eventTitle'),d=document.getElementById('eventDate');if(!t.value.trim()||!d.value)return;events.push({id:Date.now(),title:t.value.trim(),date:d.value});t.value='';d.value='';save()}function delEvent(id){events=events.filter(x=>x.id!==id);save()}
+function addBoard(){let e=document.getElementById('boardInput'),v=e.value.trim();if(!v)return;board.push({id:Date.now(),text:v});e.value='';save()}function delBoard(id){board=board.filter(x=>x.id!==id);save()}
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.page).classList.add('active')});
+['quickTask','taskInput','boardInput'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter'){if(id==='boardInput')addBoard();else addTask(id)}}));
+const nt=document.getElementById('noteText');nt.value=localStorage.getItem('dayspace_notes')||'';function noteCount(){document.getElementById('chars').textContent=nt.value.length+' tekens'}nt.oninput=()=>{localStorage.setItem('dayspace_notes',nt.value);noteCount()};noteCount();
+function tick(){document.getElementById('clock').textContent=new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}).format(new Date())}tick();setInterval(tick,1000);render();
+</script>
+</body>
+</html>
